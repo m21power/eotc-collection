@@ -3,13 +3,13 @@ import 'package:hive/hive.dart';
 @HiveType(typeId: 0)
 class SongModel extends HiveObject {
   @HiveField(0)
-  final String id; // <-- new unique path id
+  final String id;
 
   @HiveField(1)
   String name;
 
   @HiveField(2)
-  String? url;
+  String? url; // remote audio URL
 
   @HiveField(3)
   bool isAudio;
@@ -18,12 +18,15 @@ class SongModel extends HiveObject {
   bool listHere;
 
   @HiveField(5)
-  bool isDownloaded;
+  bool isDownloaded; // audio downloaded
 
   @HiveField(6)
-  String? localPath;
+  String? audioLocalPath; // local audio file path
 
   @HiveField(7)
+  String? imageLocalPath; // local image path
+
+  @HiveField(8)
   List<SongModel> children;
 
   SongModel({
@@ -32,12 +35,13 @@ class SongModel extends HiveObject {
     this.url,
     this.isAudio = false,
     this.listHere = false,
-    this.children = const [],
     this.isDownloaded = false,
-    this.localPath,
+    this.audioLocalPath,
+    this.imageLocalPath,
+    this.children = const [],
   });
 
-  /// Recursively build SongModel from JSON and generate id paths
+  /// Recursively build SongModel from JSON
   factory SongModel.fromJson(
     Map<String, dynamic> json, [
     String parentPath = '',
@@ -53,13 +57,14 @@ class SongModel extends HiveObject {
         [];
 
     return SongModel(
-      id: currentPath,
+      id: json['id'],
       name: json['name'],
       url: json['url'],
       isAudio: json['isAudio'] ?? false,
       listHere: json['listHere'] ?? false,
       isDownloaded: json['isDownloaded'] ?? false,
-      localPath: json['localPath'],
+      audioLocalPath: json['audioLocalPath'],
+      imageLocalPath: json['imageLocalPath'],
       children: children,
     );
   }
@@ -72,7 +77,8 @@ class SongModel extends HiveObject {
       'isAudio': isAudio,
       'listHere': listHere,
       'isDownloaded': isDownloaded,
-      'localPath': localPath,
+      'audioLocalPath': audioLocalPath,
+      'imageLocalPath': imageLocalPath,
       'children': children.map((e) => e.toJson()).toList(),
     };
   }

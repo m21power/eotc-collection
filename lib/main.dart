@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wereb/dependency_injection.dart';
 import 'package:wereb/features/songs/presentation/bloc/song_bloc.dart';
 import 'package:wereb/features/songs/presentation/pages/home_page.dart';
@@ -11,10 +10,30 @@ import 'features/songs/data/local/song_model_adapter.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Hive.initFlutter();
   await init();
-  Hive.registerAdapter(SongModelAdapter());
-  await Hive.openBox<SongModel>('songsBox');
+  // await Hive.deleteBoxFromDisk('songsBox');
+
+  // await dotenv.load(fileName: ".env");
+  // final folders = await fetchCloudinaryFolderTree(
+  //   cloudName: dotenv.env['CLOUD_NAME']!,
+  //   apiKey: dotenv.env['API_KEY']!,
+  //   apiSecret: dotenv.env['API_SECRET']!,
+  // );
+
+  // print("*****************************");
+  // await saveJsonToFile(folders);
+
+  // List<Songmodel> tree = buildSongTree(resources);
+  // print("*****************************");
+  // // print(jsonEncode(tree));
+  // await sendJsonToTelegram(
+  //   jsonStr: jsonEncode(tree),
+  //   token: dotenv.env['TELEGRAM_BOT_TOKEN']!,
+  //   chatId: dotenv.env['TELEGRAM_CHAT_ID']!,
+  // );
+  // print("JSON file sent to Telegram successfully.");
+
+  // printTree(tree);
   runApp(const MyApp());
 }
 

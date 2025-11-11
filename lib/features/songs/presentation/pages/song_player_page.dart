@@ -1,9 +1,10 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:just_audio/just_audio.dart';
 import 'package:wereb/features/songs/data/local/song_model.dart';
-import 'package:wereb/features/songs/domain/entities/SongModel.dart';
 import 'package:wereb/features/songs/presentation/bloc/song_bloc.dart';
 import 'package:wereb/features/songs/presentation/widgets/pick_image.dart';
 
@@ -16,19 +17,159 @@ class SongPlayerPage extends StatefulWidget {
 }
 
 class _SongPlayerPageState extends State<SongPlayerPage> {
-  double progress = 0.2;
-  double playbackSpeed = 1.0; // add this as a state variable
+  double progress = 0.0;
+  double playbackSpeed = 1.0;
+  Duration currentPosition = Duration.zero;
+  Duration totalDuration = Duration.zero;
   SongModel? songModel;
   int currentIndex = 0;
   double downloadProgress = 0;
-  @override
-  void initState() {
-    // TODO: implement initState
-    super.initState();
-    songModel = widget.song;
+  late AudioPlayer _audioPlayer;
+
+  late StreamSubscription<PlayerState> _playerStateSub;
+  late StreamSubscription<Duration> _positionSub;
+  bool isPlaying = false;
+  bool isLoading = false;
+  // Add this to your state
+  final Map<String, Duration> _durationCache = {};
+  final AudioPlayer _tempPlayer = AudioPlayer();
+
+  // Helper function
+  Future<Duration> _getAudioDurationCached(String path) async {
+    print("***************here******************");
+    if (_durationCache.containsKey(path)) {
+      print("*********************************");
+      print("Using cached duration for $path: ${_durationCache[path]}");
+      return _durationCache[path]!;
+    }
+
+    try {
+      final duration = await _tempPlayer.setFilePath(path);
+      _durationCache[path] = duration ?? Duration.zero;
+      print("*********************************");
+      print("Cached duration for $path: ${_durationCache[path]}");
+      return Future.value(duration ?? Duration.zero);
+    } catch (_) {
+      print("Error getting audio duration for $path");
+      return Duration.zero;
+    }
   }
 
-  bool isLoading = false;
+  @override
+  void initState() {
+    super.initState();
+    songModel = widget.song;
+    _audioPlayer = AudioPlayer();
+
+    // Listen for total duration
+    _audioPlayer.durationStream.listen((d) {
+      if (d != null) {
+        setState(() => totalDuration = d);
+      }
+    });
+
+    // Listen for current position
+    _positionSub = _audioPlayer.positionStream.listen((pos) {
+      setState(() {
+        currentPosition = pos;
+        progress = totalDuration.inMilliseconds == 0
+            ? 0
+            : pos.inMilliseconds / totalDuration.inMilliseconds;
+      });
+    });
+
+    // Listen for state changes
+    _playerStateSub = _audioPlayer.playerStateStream.listen((state) {
+      setState(() {
+        isPlaying = state.playing;
+        if (state.processingState == ProcessingState.completed) {
+          _audioPlayer.seek(Duration.zero);
+          _audioPlayer.pause();
+          isPlaying = false;
+          progress = 0;
+        }
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _playerStateSub.cancel();
+    _positionSub.cancel();
+    _audioPlayer.dispose();
+    _tempPlayer.dispose();
+    super.dispose();
+  }
+
+  // ---- FIXED: Centralized playback toggle ----
+  Future<void> togglePlayPause() async {
+    final currentChild = songModel!.children[currentIndex];
+
+    if (!currentChild.isDownloaded) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("This song isn’t downloaded yet")),
+      );
+      return;
+    }
+
+    final localUrl = currentChild.audioLocalPath!;
+    // Always reload file if current source is different
+    final currentTag = _audioPlayer.sequenceState?.sequence.firstOrNull?.tag;
+    if (currentTag != localUrl) {
+      await _audioPlayer.setFilePath(localUrl, tag: localUrl);
+      await _audioPlayer.setSpeed(playbackSpeed);
+    }
+
+    if (isPlaying) {
+      await _audioPlayer.pause();
+    } else {
+      await _audioPlayer.play();
+    }
+  }
+
+  // ---- FIXED: Switching between songs ----
+  Future<void> playSongAtIndex(int index) async {
+    if (index < 0 || index >= songModel!.children.length) return;
+    if (!mounted) return;
+    setState(() {
+      currentIndex = index;
+      isPlaying = false;
+      progress = 0.0;
+      currentPosition = Duration.zero;
+      totalDuration = Duration.zero;
+    });
+
+    final song = songModel!.children[index];
+
+    await _audioPlayer.stop();
+
+    if (song.isDownloaded) {
+      final localUrl = song.audioLocalPath!;
+      await _audioPlayer.setFilePath(localUrl, tag: localUrl);
+      await _audioPlayer.setSpeed(playbackSpeed);
+      await _audioPlayer.play();
+      setState(() => isLoading = false);
+    } else {
+      // reset UI since song isn't downloaded
+      setState(() {
+        isPlaying = false;
+        totalDuration = Duration.zero;
+        currentPosition = Duration.zero;
+        progress = 0.0;
+      });
+    }
+  }
+
+  String formatDuration(Duration? d, [double? progress]) {
+    if (d == null) return "--:--";
+    final totalSeconds = d.inSeconds;
+    final currentSeconds = progress == null
+        ? totalSeconds
+        : (progress * totalSeconds).toInt();
+    final minutes = (currentSeconds ~/ 60).toString().padLeft(2, '0');
+    final seconds = (currentSeconds % 60).toString().padLeft(2, '0');
+    return "$minutes:$seconds";
+  }
 
   final selectedImage = {};
   @override
@@ -53,6 +194,7 @@ class _SongPlayerPageState extends State<SongPlayerPage> {
             if (songState is AudioDownloadSuccessfully) {
               setState(() {
                 setState(() {
+                  print("Download completed. updating ui...");
                   songModel = songState.songModel;
                 });
               });
@@ -112,9 +254,14 @@ class _SongPlayerPageState extends State<SongPlayerPage> {
                         children: [
                           Expanded(
                             child: Slider(
-                              value: progress,
-                              onChanged: (value) =>
-                                  setState(() => progress = value),
+                              value: progress.clamp(0.0, 1.0),
+                              onChanged: (value) {
+                                setState(() => progress = value);
+                              },
+                              onChangeEnd: (value) {
+                                final newPosition = totalDuration * value;
+                                _audioPlayer.seek(newPosition);
+                              },
                               activeColor: theme.primaryColor,
                               inactiveColor: theme.primaryColor.withOpacity(
                                 0.4,
@@ -138,7 +285,7 @@ class _SongPlayerPageState extends State<SongPlayerPage> {
                               if (value != null) {
                                 setState(() {
                                   playbackSpeed = value;
-                                  // TODO: update your audio player speed here
+                                  _audioPlayer!.setSpeed(playbackSpeed);
                                 });
                               }
                             },
@@ -148,8 +295,18 @@ class _SongPlayerPageState extends State<SongPlayerPage> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text("0:50", style: textTheme.titleMedium),
-                          Text("4:00", style: textTheme.titleMedium),
+                          Text(
+                            songModel!.children[currentIndex].isDownloaded
+                                ? formatDuration(totalDuration, progress)
+                                : "--:--",
+                            style: textTheme.titleMedium,
+                          ),
+                          Text(
+                            songModel!.children[currentIndex].isDownloaded
+                                ? formatDuration(totalDuration)
+                                : "--:--",
+                            style: textTheme.titleMedium,
+                          ),
                         ],
                       ),
                     ],
@@ -161,13 +318,11 @@ class _SongPlayerPageState extends State<SongPlayerPage> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     IconButton(
-                      onPressed: () {
-                        setState(() {
-                          currentIndex =
-                              (currentIndex - 1 + songModel!.children.length) %
-                              songModel!.children.length;
-                        });
-                      },
+                      onPressed: () => playSongAtIndex(
+                        (currentIndex - 1 + songModel!.children.length) %
+                            songModel!.children.length,
+                      ),
+
                       icon: Icon(
                         Icons.skip_previous,
                         size: 40,
@@ -176,13 +331,39 @@ class _SongPlayerPageState extends State<SongPlayerPage> {
                     ),
                     const SizedBox(width: 20),
                     IconButton(
-                      onPressed: () {
-                        if (!songModel!.children[currentIndex].isDownloaded) {
+                      onPressed: () async {
+                        final currentChild = songModel!.children[currentIndex];
+
+                        // If the song is downloaded
+                        if (currentChild.isDownloaded) {
+                          final localUrl = currentChild.audioLocalPath!;
+                          // If already playing something, toggle play/pause
+                          if (isPlaying) {
+                            await _audioPlayer.pause();
+                          } else {
+                            // Check if the file is already loaded
+                            if (_audioPlayer.audioSource == null ||
+                                _audioPlayer
+                                        .sequenceState
+                                        ?.sequence
+                                        .first
+                                        .tag !=
+                                    localUrl) {
+                              await _audioPlayer.setFilePath(
+                                localUrl,
+                                tag: localUrl,
+                              );
+                            }
+                            await _audioPlayer.setSpeed(playbackSpeed);
+                            await _audioPlayer.play();
+                          }
+                        } else {
+                          // Not downloaded yet
                           if (!songState.connectionEnabled) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Row(
-                                  children: [
+                                  children: const [
                                     Icon(Icons.wifi_off, color: Colors.white),
                                     SizedBox(width: 10),
                                     Expanded(
@@ -201,24 +382,19 @@ class _SongPlayerPageState extends State<SongPlayerPage> {
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
-                                margin: EdgeInsets.all(16),
-                                duration: Duration(seconds: 3),
+                                margin: const EdgeInsets.all(16),
+                                duration: const Duration(seconds: 3),
                               ),
                             );
-
                             return;
                           }
-                          setState(() {
-                            isLoading = true;
-                          });
+                          setState(() => isLoading = true);
+                          context.read<SongBloc>().add(
+                            DownloadAudioEvent(songModel!, currentChild.url!),
+                          );
                         }
-                        context.read<SongBloc>().add(
-                          DownloadAudioEvent(
-                            songModel!,
-                            songModel!.children[currentIndex].url!,
-                          ),
-                        );
                       },
+
                       icon: songState is AudioDownloadingFetchingState
                           ? Stack(
                               alignment: Alignment.center,
@@ -257,7 +433,9 @@ class _SongPlayerPageState extends State<SongPlayerPage> {
                             )
                           : Icon(
                               songModel!.children[currentIndex].isDownloaded
-                                  ? Icons.play_arrow
+                                  ? isPlaying
+                                        ? Icons.pause_circle_filled
+                                        : Icons.play_circle_filled
                                   : Icons.download,
                               size: 50,
                               color: theme.iconTheme.color,
@@ -265,12 +443,10 @@ class _SongPlayerPageState extends State<SongPlayerPage> {
                     ),
                     const SizedBox(width: 20),
                     IconButton(
-                      onPressed: () {
-                        setState(() {
-                          currentIndex =
-                              (currentIndex + 1) % songModel!.children.length;
-                        });
-                      },
+                      onPressed: () => playSongAtIndex(
+                        (currentIndex + 1) % songModel!.children.length,
+                      ),
+
                       icon: Icon(
                         Icons.skip_next,
                         size: 40,
@@ -308,8 +484,7 @@ class _SongPlayerPageState extends State<SongPlayerPage> {
                               color: Colors.transparent,
                               child: InkWell(
                                 borderRadius: BorderRadius.circular(12),
-                                onTap: () =>
-                                    setState(() => currentIndex = index),
+                                onTap: () => playSongAtIndex(index),
                                 child: ListTile(
                                   contentPadding: const EdgeInsets.symmetric(
                                     horizontal: 12,
@@ -325,10 +500,27 @@ class _SongPlayerPageState extends State<SongPlayerPage> {
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                   ),
-                                  subtitle: Text(
-                                    "3:45",
-                                    style: textTheme.titleMedium,
-                                  ),
+                                  // subtitle: FutureBuilder<Duration>(
+                                  //   future: song.isDownloaded
+                                  //       ? _getAudioDurationCached(
+                                  //           song.audioLocalPath!,
+                                  //         )
+                                  //       : Future.value(Duration.zero),
+                                  //   builder: (context, snapshot) {
+                                  //     if (!song.isDownloaded ||
+                                  //         !snapshot.hasData ||
+                                  //         snapshot.data!.inMilliseconds == 0) {
+                                  //       return Text(
+                                  //         "--:--",
+                                  //         style: textTheme.titleMedium,
+                                  //       );
+                                  //     }
+                                  //     return Text(
+                                  //       formatDuration(snapshot.data),
+                                  //       style: textTheme.titleMedium,
+                                  //     );
+                                  //   },
+                                  // ),
                                 ),
                               ),
                             ),
@@ -362,7 +554,7 @@ class _SongPlayerPageState extends State<SongPlayerPage> {
         // optional: lock scroll if zoomed (you can manage this dynamically)
         physics: const BouncingScrollPhysics(),
         itemCount: songModel!.children.length,
-        onPageChanged: (index) => setState(() => currentIndex = index),
+        onPageChanged: (index) => playSongAtIndex(index),
         itemBuilder: (context, index) {
           bool isActive = index == currentIndex;
           return Stack(
@@ -387,11 +579,12 @@ class _SongPlayerPageState extends State<SongPlayerPage> {
                     clipBehavior: Clip.none,
                     boundaryMargin: const EdgeInsets.all(double.infinity),
                     child:
-                        (songModel!.children[currentIndex].localPath != null &&
+                        (songModel!.children[currentIndex].imageLocalPath !=
+                                    null &&
                                 widget
                                     .song
                                     .children[currentIndex]
-                                    .localPath!
+                                    .imageLocalPath!
                                     .isNotEmpty) ||
                             selectedImage[widget
                                     .song
@@ -400,7 +593,9 @@ class _SongPlayerPageState extends State<SongPlayerPage> {
                                 null
                         ? Image.file(
                             File(
-                              songModel!.children[currentIndex].localPath ??
+                              songModel!
+                                      .children[currentIndex]
+                                      .imageLocalPath ??
                                   selectedImage[widget
                                       .song
                                       .children[currentIndex]

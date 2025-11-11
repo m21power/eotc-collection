@@ -11,6 +11,9 @@ import 'package:wereb/features/songs/domain/usecases/get_current_theme_usecase.d
 import 'package:wereb/features/songs/domain/usecases/load_songs_usecase.dart';
 import 'package:wereb/features/songs/domain/usecases/save_image_locally_usecase.dart';
 import 'package:wereb/features/songs/presentation/bloc/song_bloc.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'features/songs/data/local/song_model.dart';
+import 'features/songs/data/local/song_model_adapter.dart';
 
 final sl = get_it.GetIt.instance;
 Future<void> init() async {
@@ -18,6 +21,11 @@ Future<void> init() async {
   sl.registerLazySingleton<NetworkInfo>(() => NetworkInfoImpl());
   sl.registerLazySingleton<SharedPreferences>(() => sharedPreferencesInstance);
   sl.registerLazySingleton<http.Client>(() => http.Client());
+  await Hive.initFlutter();
+
+  Hive.registerAdapter(SongModelAdapter());
+  final box = await Hive.openBox<SongModel>('songsBox');
+  sl.registerLazySingleton<Box<SongModel>>(() => box);
   // Features - Songs
   // Bloc
   sl.registerFactory(
@@ -39,7 +47,11 @@ Future<void> init() async {
   sl.registerLazySingleton(() => CheckConnectionUsecase(sl()));
   //repository
   sl.registerLazySingleton<SongRepository>(
-    () =>
-        SongRepoImpl(sharedPreferences: sl(), networkInfo: sl(), client: sl()),
+    () => SongRepoImpl(
+      sharedPreferences: sl(),
+      networkInfo: sl(),
+      client: sl(),
+      songsBox: sl(),
+    ),
   );
 }

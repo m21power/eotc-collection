@@ -8,7 +8,8 @@ class Songmodel {
   final bool listHere;
   final List<Songmodel> children;
   bool isDownloaded;
-  String? localPath;
+  String? audioLocalPath;
+  String? imageLocalPath;
 
   Songmodel({
     required this.id,
@@ -18,7 +19,8 @@ class Songmodel {
     this.listHere = false,
     this.children = const [],
     this.isDownloaded = false,
-    this.localPath,
+    this.audioLocalPath,
+    this.imageLocalPath,
   });
 
   factory Songmodel.fromJson(Map<String, dynamic> json) {
@@ -34,7 +36,8 @@ class Songmodel {
             )
           : [],
       isDownloaded: json['isDownloaded'] ?? false,
-      localPath: json['localPath'],
+      audioLocalPath: json['audioLocalPath'],
+      imageLocalPath: json['imageLocalPath'],
     );
   }
 
@@ -47,7 +50,8 @@ class Songmodel {
       'listHere': listHere,
       'children': children.map((e) => e.toJson()).toList(),
       'isDownloaded': isDownloaded,
-      'localPath': localPath,
+      'audioLocalPath': audioLocalPath,
+      'imageLocalPath': imageLocalPath,
     };
   }
 }
