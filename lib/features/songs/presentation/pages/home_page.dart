@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:wereb/features/songs/data/local/song_model.dart';
-import 'package:wereb/features/songs/presentation/bloc/song_bloc.dart';
-import 'package:wereb/theme/theme.dart';
-import 'package:wereb/features/songs/presentation/pages/song_player_page.dart';
+import 'package:mezgebe_sibhat/features/songs/data/local/song_model.dart';
+import 'package:mezgebe_sibhat/features/songs/presentation/bloc/song_bloc.dart';
+import 'package:mezgebe_sibhat/features/songs/presentation/pages/about_page.dart';
+import 'package:mezgebe_sibhat/theme/theme.dart';
+import 'package:mezgebe_sibhat/features/songs/presentation/pages/song_player_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -38,38 +39,46 @@ class _HomePageState extends State<HomePage> {
       data: songState.isLightTheme ? AppThemes.lightTheme : AppThemes.darkTheme,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text("EOTC Collection"),
+          title: const Text("መዝገበ ስብሐት"),
           centerTitle: true,
-          backgroundColor: isDarkMode ? Colors.black : Colors.white,
+          // backgroundColor: isDarkMode ? Colors.black : Colors.white,
           actions: [
-            IconButton(
-              tooltip: 'About',
-              icon: const Icon(Icons.info_outline),
-              onPressed: () {
-                showAboutDialog(
-                  context: context,
-                  applicationName: 'Wereb Player',
-                  applicationVersion: '1.0.0',
-                  applicationIcon: const Icon(Icons.music_note),
-                  children: const [
-                    Text(
-                      'A simple music player app made with Flutter.\n'
-                      'Features song playback, folder browsing, and theme switching.',
+            PopupMenuButton<String>(
+              color: isDarkMode ? Colors.grey[900] : Colors.white,
+              onSelected: (value) {
+                if (value == 'about') {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => AboutPage()),
+                  );
+                } else if (value == 'theme') {
+                  context.read<SongBloc>().add(
+                    ChangeThemeEvent(isDarkMode ? 'light' : 'dark'),
+                  );
+                }
+              },
+              itemBuilder: (context) => [
+                PopupMenuItem(
+                  value: 'theme',
+                  child: ListTile(
+                    leading: Icon(
+                      isDarkMode ? Icons.wb_sunny : Icons.nightlight_round,
                     ),
-                  ],
-                );
-              },
-            ),
-            IconButton(
-              tooltip: isDarkMode
-                  ? 'Switch to Light Mode'
-                  : 'Switch to Dark Mode',
-              icon: Icon(isDarkMode ? Icons.wb_sunny : Icons.nightlight_round),
-              onPressed: () {
-                context.read<SongBloc>().add(
-                  ChangeThemeEvent(isDarkMode ? 'light' : 'dark'),
-                );
-              },
+                    title: Text(
+                      isDarkMode
+                          ? 'Switch to Light Mode'
+                          : 'Switch to Dark Mode',
+                    ),
+                  ),
+                ),
+                const PopupMenuItem(
+                  value: 'about',
+                  child: ListTile(
+                    leading: Icon(Icons.info_outline),
+                    title: Text('About'),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -106,12 +115,7 @@ class _HomePageState extends State<HomePage> {
 
     if (song.isAudio) {
       return InkWell(
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => SongPlayerPage(song: song)),
-          );
-        },
+        onTap: () {},
         child: Container(
           margin: const EdgeInsets.symmetric(vertical: 4),
           padding: EdgeInsets.symmetric(vertical: 8, horizontal: 16 + indent),
@@ -143,7 +147,11 @@ class _HomePageState extends State<HomePage> {
         InkWell(
           borderRadius: BorderRadius.circular(12),
           onTap: () {
-            if (song.listHere) {
+            final oneOfTheChildrenIsAudio = song.children.any(
+              (child) => child.isAudio,
+            );
+
+            if (song.listHere && !oneOfTheChildrenIsAudio) {
               toggleExpanded(song);
             } else {
               Navigator.push(
@@ -196,7 +204,8 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ),
                 ),
-                if (song.listHere)
+                if (song.listHere &&
+                    !song.children.any((child) => child.isAudio))
                   Icon(
                     expanded
                         ? Icons.keyboard_arrow_down

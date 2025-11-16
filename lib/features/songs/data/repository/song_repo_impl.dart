@@ -1,15 +1,16 @@
 import 'dart:io';
 
 import 'package:dartz/dartz.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:wereb/core/error/failure.dart';
-import 'package:wereb/core/network/network_info_impl.dart';
-import 'package:wereb/features/songs/data/local/server_1_content.dart';
-import 'package:wereb/features/songs/data/local/song_model.dart';
-import 'package:wereb/features/songs/domain/entities/SongModel.dart';
-import 'package:wereb/features/songs/domain/repository/song_repo.dart';
+import 'package:mezgebe_sibhat/core/error/failure.dart';
+import 'package:mezgebe_sibhat/core/network/network_info_impl.dart';
+import 'package:mezgebe_sibhat/features/songs/data/local/server_1_content.dart';
+import 'package:mezgebe_sibhat/features/songs/data/local/song_model.dart';
+import 'package:mezgebe_sibhat/features/songs/domain/entities/SongModel.dart';
+import 'package:mezgebe_sibhat/features/songs/domain/repository/song_repo.dart';
 import 'package:http/http.dart' as http;
 import 'package:collection/collection.dart'; // optional for natural sorting
 
@@ -34,7 +35,7 @@ class SongRepoImpl implements SongRepository {
 
   @override
   Future<String> getCurrentTheme() {
-    return Future.value(sharedPreferences.getString('theme') ?? 'light');
+    return Future.value(sharedPreferences.getString('theme') ?? 'dark');
   }
 
   int _sortByName(SongModel a, SongModel b) {
@@ -73,29 +74,47 @@ class SongRepoImpl implements SongRepository {
   @override
   Future<List<SongModel>> loadSongs() async {
     try {
-      if (songsBox.containsKey('root')) {
-        final SongModel root = songsBox.get('root')!;
-        return Future.value(root.children);
-      }
-
       final jsonValue = server1Content;
       List<SongModel> songs = jsonValue
           .map<SongModel>((json) => SongModel.fromJson(json))
           .toList();
-
       songs = _sortRecursive(songs);
 
-      final root = SongModel(
-        id: 'root',
-        name: 'Root',
-        listHere: true,
-        url: null,
-        isAudio: false,
-        children: songs,
-      );
-      await songsBox.put('root', root);
+      if (songsBox.containsKey('root')) {
+        final SongModel root = songsBox.get('root')!;
+        final cachedLength = root.children.length;
+        final newLength = songs.length;
 
-      return Future.value(songs);
+        // If length mismatch, clear cache and refresh
+        if (cachedLength != newLength) {
+          await songsBox.deleteAll(songsBox.keys);
+          final newRoot = SongModel(
+            id: 'root',
+            name: 'Root',
+            listHere: true,
+            url: null,
+            isAudio: false,
+            children: songs,
+          );
+          await songsBox.put('root', newRoot);
+          return songs;
+        } else {
+          // Same length → assume cache is valid
+          return root.children;
+        }
+      } else {
+        // No cache yet → save new
+        final root = SongModel(
+          id: 'root',
+          name: 'Root',
+          listHere: true,
+          url: null,
+          isAudio: false,
+          children: songs,
+        );
+        await songsBox.put('root', root);
+        return songs;
+      }
     } catch (e) {
       return Future.error("Error loading songs: $e");
     }
@@ -215,6 +234,76 @@ class SongRepoImpl implements SongRepository {
   @override
   Future<bool> isConnected() async {
     return await networkInfo.isConnected;
+  }
+
+  @override
+  Future<void> submitFeedback({
+    required String feedback,
+    required String fullname,
+    File? imageFile,
+  }) async {
+    final token = dotenv.env['TELEGRAM_BOT_TOKEN'];
+    final userId = dotenv.env['USER_ID'];
+
+    if (token == null || userId == null) {
+      throw Exception('Bot token or user ID not configured in .env');
+    }
+
+    final caption =
+        '''
+*New Feedback*
+
+*Message:*  
+$feedback
+
+*Telegram:*  
+@$fullname
+  '''
+            .trim();
+
+    try {
+      if (imageFile != null) {
+        // Send with photo
+        final uri = Uri.parse('https://api.telegram.org/bot$token/sendPhoto');
+        final request = http.MultipartRequest('POST', uri);
+
+        request.fields['chat_id'] = userId;
+        request.fields['caption'] = caption;
+        request.fields['parse_mode'] = 'Markdown';
+
+        final bytes = await imageFile.readAsBytes();
+        final multipartFile = http.MultipartFile.fromBytes(
+          'photo',
+          bytes,
+          filename: imageFile.path.split(Platform.pathSeparator).last,
+        );
+
+        request.files.add(multipartFile);
+
+        final response = await request.send();
+
+        if (response.statusCode != 200) {
+          final errorBody = await response.stream.bytesToString();
+          throw Exception(
+            'Failed to send photo: ${response.statusCode} - $errorBody',
+          );
+        }
+      } else {
+        // Send text only
+        final uri = Uri.parse('https://api.telegram.org/bot$token/sendMessage');
+        final response = await http.post(
+          uri,
+          body: {'chat_id': userId, 'text': caption, 'parse_mode': 'Markdown'},
+        );
+
+        if (response.statusCode != 200) {
+          throw Exception('Failed to send message: ${response.statusCode}');
+        }
+      }
+    } catch (e) {
+      // Re-throw with user-friendly message
+      throw Exception('Failed to send feedback. Please try again.');
+    }
   }
 }
 

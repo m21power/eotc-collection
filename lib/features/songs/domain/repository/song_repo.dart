@@ -1,7 +1,9 @@
+import 'dart:io';
+
 import 'package:dartz/dartz.dart';
-import 'package:wereb/core/error/failure.dart';
-import 'package:wereb/features/songs/data/local/song_model.dart';
-import 'package:wereb/features/songs/domain/entities/SongModel.dart';
+import 'package:mezgebe_sibhat/core/error/failure.dart';
+import 'package:mezgebe_sibhat/features/songs/data/local/song_model.dart';
+import 'package:mezgebe_sibhat/features/songs/domain/entities/SongModel.dart';
 
 abstract class SongRepository {
   Future<String> changeTheme(String theme);
@@ -13,4 +15,9 @@ abstract class SongRepository {
     SongModel song,
   );
   Future<bool> isConnected();
+  Future<void> submitFeedback({
+    required String feedback,
+    required String fullname,
+    File? imageFile,
+  });
 }

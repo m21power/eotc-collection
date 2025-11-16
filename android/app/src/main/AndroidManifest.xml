@@ -9,7 +9,7 @@
     
 
     <application
-        android:label="wereb"
+        android:label="መዝገበ ስብሐት"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:enableOnBackInvokedCallback="true">

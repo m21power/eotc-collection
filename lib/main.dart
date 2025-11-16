@@ -1,39 +1,17 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:wereb/dependency_injection.dart';
-import 'package:wereb/features/songs/presentation/bloc/song_bloc.dart';
-import 'package:wereb/features/songs/presentation/pages/home_page.dart';
-import 'package:wereb/theme/theme.dart';
-import 'package:hive_flutter/hive_flutter.dart';
-import 'features/songs/data/local/song_model.dart';
-import 'features/songs/data/local/song_model_adapter.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:mezgebe_sibhat/dependency_injection.dart';
+import 'package:mezgebe_sibhat/features/songs/presentation/bloc/song_bloc.dart';
+import 'package:mezgebe_sibhat/features/songs/presentation/pages/home_page.dart';
+import 'package:mezgebe_sibhat/theme/theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await init();
-  // await Hive.deleteBoxFromDisk('songsBox');
-
-  // await dotenv.load(fileName: ".env");
-  // final folders = await fetchCloudinaryFolderTree(
-  //   cloudName: dotenv.env['CLOUD_NAME']!,
-  //   apiKey: dotenv.env['API_KEY']!,
-  //   apiSecret: dotenv.env['API_SECRET']!,
-  // );
-
-  // print("*****************************");
-  // await saveJsonToFile(folders);
-
-  // List<Songmodel> tree = buildSongTree(resources);
-  // print("*****************************");
-  // // print(jsonEncode(tree));
-  // await sendJsonToTelegram(
-  //   jsonStr: jsonEncode(tree),
-  //   token: dotenv.env['TELEGRAM_BOT_TOKEN']!,
-  //   chatId: dotenv.env['TELEGRAM_CHAT_ID']!,
-  // );
-  // print("JSON file sent to Telegram successfully.");
-
-  // printTree(tree);
+  await dotenv.load(fileName: ".env");
   runApp(const MyApp());
 }
 

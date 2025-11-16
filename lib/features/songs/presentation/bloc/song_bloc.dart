@@ -1,16 +1,19 @@
+import 'dart:io';
+
 import 'package:bloc/bloc.dart';
 import 'package:dartz/dartz.dart';
 import 'package:meta/meta.dart';
-import 'package:wereb/core/error/failure.dart';
-import 'package:wereb/core/network/network_info_impl.dart';
-import 'package:wereb/features/songs/data/local/song_model.dart';
-import 'package:wereb/features/songs/domain/entities/SongModel.dart';
-import 'package:wereb/features/songs/domain/usecases/change_theme_usecase.dart';
-import 'package:wereb/features/songs/domain/usecases/check_connection_usecase.dart';
-import 'package:wereb/features/songs/domain/usecases/download_audio_usecase.dart';
-import 'package:wereb/features/songs/domain/usecases/get_current_theme_usecase.dart';
-import 'package:wereb/features/songs/domain/usecases/load_songs_usecase.dart';
-import 'package:wereb/features/songs/domain/usecases/save_image_locally_usecase.dart';
+import 'package:mezgebe_sibhat/core/error/failure.dart';
+import 'package:mezgebe_sibhat/core/network/network_info_impl.dart';
+import 'package:mezgebe_sibhat/features/songs/data/local/song_model.dart';
+import 'package:mezgebe_sibhat/features/songs/domain/entities/SongModel.dart';
+import 'package:mezgebe_sibhat/features/songs/domain/usecases/change_theme_usecase.dart';
+import 'package:mezgebe_sibhat/features/songs/domain/usecases/check_connection_usecase.dart';
+import 'package:mezgebe_sibhat/features/songs/domain/usecases/download_audio_usecase.dart';
+import 'package:mezgebe_sibhat/features/songs/domain/usecases/get_current_theme_usecase.dart';
+import 'package:mezgebe_sibhat/features/songs/domain/usecases/load_songs_usecase.dart';
+import 'package:mezgebe_sibhat/features/songs/domain/usecases/save_image_locally_usecase.dart';
+import 'package:mezgebe_sibhat/features/songs/domain/usecases/submit_feedback_usecase.dart';
 
 part 'song_event.dart';
 part 'song_state.dart';
@@ -22,6 +25,7 @@ class SongBloc extends Bloc<SongEvent, SongState> {
   final SaveImageLocallyUsecase saveImageLocallyUsecase;
   final DownloadAudioUseCase downloadAudioUseCase;
   final CheckConnectionUsecase checkConnectionUsecase;
+  final SubmitFeedbackUsecase submitFeedbackUsecase;
   final networkInfo = NetworkInfoImpl();
   SongBloc({
     required this.getCurrentThemeUsecase,
@@ -30,6 +34,7 @@ class SongBloc extends Bloc<SongEvent, SongState> {
     required this.saveImageLocallyUsecase,
     required this.downloadAudioUseCase,
     required this.checkConnectionUsecase,
+    required this.submitFeedbackUsecase,
   }) : super(
          ThemeChangedState(
            isLightTheme: true,
@@ -43,7 +48,38 @@ class SongBloc extends Bloc<SongEvent, SongState> {
         ConnectionChangedEvent(isConnected: isConnected),
       ); // create this event
     });
-
+    on<SubmitFeedbackEvent>((event, emit) async {
+      emit(
+        SubmitFeedbackLoadingState(
+          isLightTheme: state.isLightTheme,
+          songs: state.songs,
+          connectionEnabled: state.connectionEnabled,
+        ),
+      );
+      try {
+        await submitFeedbackUsecase(
+          feedback: event.feedback,
+          fullname: event.fullname,
+          imageFile: event.imageFile,
+        );
+        emit(
+          FeedbackSubmittedState(
+            isLightTheme: state.isLightTheme,
+            songs: state.songs,
+            connectionEnabled: state.connectionEnabled,
+          ),
+        );
+      } catch (e) {
+        emit(
+          FeedbackSubmissionFailedState(
+            isLightTheme: state.isLightTheme,
+            songs: state.songs,
+            message: e.toString(),
+            connectionEnabled: state.connectionEnabled,
+          ),
+        );
+      }
+    });
     on<ConnectionChangedEvent>((event, emit) {
       // just update the current state with new connection info
       emit(state.copyWith(connectionEnabled: event.isConnected));

@@ -1,8 +1,8 @@
 import 'package:dartz/dartz.dart';
-import 'package:wereb/core/error/failure.dart';
-import 'package:wereb/features/songs/data/local/song_model.dart';
-import 'package:wereb/features/songs/domain/entities/SongModel.dart';
-import 'package:wereb/features/songs/domain/repository/song_repo.dart';
+import 'package:mezgebe_sibhat/core/error/failure.dart';
+import 'package:mezgebe_sibhat/features/songs/data/local/song_model.dart';
+import 'package:mezgebe_sibhat/features/songs/domain/entities/SongModel.dart';
+import 'package:mezgebe_sibhat/features/songs/domain/repository/song_repo.dart';
 
 class DownloadAudioUseCase {
   final SongRepository songRepository;

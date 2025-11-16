@@ -1,5 +1,5 @@
-import 'package:wereb/features/songs/data/local/song_model.dart';
-import 'package:wereb/features/songs/domain/repository/song_repo.dart';
+import 'package:mezgebe_sibhat/features/songs/data/local/song_model.dart';
+import 'package:mezgebe_sibhat/features/songs/domain/repository/song_repo.dart';
 
 class SaveImageLocallyUsecase {
   final SongRepository repository;

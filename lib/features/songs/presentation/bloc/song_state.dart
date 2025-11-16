@@ -102,3 +102,41 @@ final class AudioDownloadingFetchingState extends SongState {
          connectionEnabled: connectionEnabled,
        );
 }
+
+final class FeedbackSubmittedState extends SongState {
+  FeedbackSubmittedState({
+    required bool isLightTheme,
+    required List<SongModel> songs,
+    required bool connectionEnabled,
+  }) : super(
+         isLightTheme: isLightTheme,
+         songs: songs,
+         connectionEnabled: connectionEnabled,
+       );
+}
+
+final class FeedbackSubmissionFailedState extends SongState {
+  final String message;
+  FeedbackSubmissionFailedState({
+    required bool isLightTheme,
+    required List<SongModel> songs,
+    required this.message,
+    required bool connectionEnabled,
+  }) : super(
+         isLightTheme: isLightTheme,
+         songs: songs,
+         connectionEnabled: connectionEnabled,
+       );
+}
+
+final class SubmitFeedbackLoadingState extends SongState {
+  SubmitFeedbackLoadingState({
+    required bool isLightTheme,
+    required List<SongModel> songs,
+    required bool connectionEnabled,
+  }) : super(
+         isLightTheme: isLightTheme,
+         songs: songs,
+         connectionEnabled: connectionEnabled,
+       );
+}

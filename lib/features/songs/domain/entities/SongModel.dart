@@ -1,4 +1,4 @@
-import 'package:wereb/features/songs/data/local/song_model.dart';
+import 'package:mezgebe_sibhat/features/songs/data/local/song_model.dart';
 
 class Songmodel {
   final String id;

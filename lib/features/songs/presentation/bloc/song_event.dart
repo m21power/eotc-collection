@@ -30,3 +30,15 @@ final class ConnectionChangedEvent extends SongEvent {
   final bool isConnected;
   ConnectionChangedEvent({required this.isConnected});
 }
+
+final class SubmitFeedbackEvent extends SongEvent {
+  final String feedback;
+  final String fullname;
+  final File? imageFile;
+
+  SubmitFeedbackEvent({
+    required this.feedback,
+    required this.fullname,
+    this.imageFile,
+  });
+}

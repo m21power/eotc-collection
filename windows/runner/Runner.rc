@@ -90,12 +90,12 @@ BEGIN
         BLOCK "040904e4"
         BEGIN
             VALUE "CompanyName", "com.example" "\0"
-            VALUE "FileDescription", "wereb" "\0"
+            VALUE "FileDescription", "mezgebe_sibhat" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "wereb" "\0"
+            VALUE "InternalName", "mezgebe_sibhat" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2025 com.example. All rights reserved." "\0"
-            VALUE "OriginalFilename", "wereb.exe" "\0"
-            VALUE "ProductName", "wereb" "\0"
+            VALUE "OriginalFilename", "mezgebe_sibhat.exe" "\0"
+            VALUE "ProductName", "mezgebe_sibhat" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

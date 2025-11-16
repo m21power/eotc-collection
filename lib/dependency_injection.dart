@@ -1,16 +1,17 @@
 import 'package:get_it/get_it.dart' as get_it;
+import 'package:mezgebe_sibhat/features/songs/domain/usecases/submit_feedback_usecase.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
-import 'package:wereb/core/network/network_info_impl.dart';
-import 'package:wereb/features/songs/data/repository/song_repo_impl.dart';
-import 'package:wereb/features/songs/domain/repository/song_repo.dart';
-import 'package:wereb/features/songs/domain/usecases/change_theme_usecase.dart';
-import 'package:wereb/features/songs/domain/usecases/check_connection_usecase.dart';
-import 'package:wereb/features/songs/domain/usecases/download_audio_usecase.dart';
-import 'package:wereb/features/songs/domain/usecases/get_current_theme_usecase.dart';
-import 'package:wereb/features/songs/domain/usecases/load_songs_usecase.dart';
-import 'package:wereb/features/songs/domain/usecases/save_image_locally_usecase.dart';
-import 'package:wereb/features/songs/presentation/bloc/song_bloc.dart';
+import 'package:mezgebe_sibhat/core/network/network_info_impl.dart';
+import 'package:mezgebe_sibhat/features/songs/data/repository/song_repo_impl.dart';
+import 'package:mezgebe_sibhat/features/songs/domain/repository/song_repo.dart';
+import 'package:mezgebe_sibhat/features/songs/domain/usecases/change_theme_usecase.dart';
+import 'package:mezgebe_sibhat/features/songs/domain/usecases/check_connection_usecase.dart';
+import 'package:mezgebe_sibhat/features/songs/domain/usecases/download_audio_usecase.dart';
+import 'package:mezgebe_sibhat/features/songs/domain/usecases/get_current_theme_usecase.dart';
+import 'package:mezgebe_sibhat/features/songs/domain/usecases/load_songs_usecase.dart';
+import 'package:mezgebe_sibhat/features/songs/domain/usecases/save_image_locally_usecase.dart';
+import 'package:mezgebe_sibhat/features/songs/presentation/bloc/song_bloc.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'features/songs/data/local/song_model.dart';
 import 'features/songs/data/local/song_model_adapter.dart';
@@ -26,6 +27,7 @@ Future<void> init() async {
   Hive.registerAdapter(SongModelAdapter());
   final box = await Hive.openBox<SongModel>('songsBox');
   sl.registerLazySingleton<Box<SongModel>>(() => box);
+
   // Features - Songs
   // Bloc
   sl.registerFactory(
@@ -36,6 +38,7 @@ Future<void> init() async {
       saveImageLocallyUsecase: sl(),
       downloadAudioUseCase: sl(),
       checkConnectionUsecase: sl(),
+      submitFeedbackUsecase: sl(),
     ),
   );
   // Use cases
@@ -45,6 +48,7 @@ Future<void> init() async {
   sl.registerLazySingleton(() => SaveImageLocallyUsecase(sl()));
   sl.registerLazySingleton(() => DownloadAudioUseCase(sl()));
   sl.registerLazySingleton(() => CheckConnectionUsecase(sl()));
+  sl.registerLazySingleton(() => SubmitFeedbackUsecase(sl()));
   //repository
   sl.registerLazySingleton<SongRepository>(
     () => SongRepoImpl(
