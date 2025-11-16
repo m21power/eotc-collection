@@ -93,13 +93,6 @@ Notes:
 - Use the app bar menu to open the About page or toggle theme.
 - Open About → use the form to submit feedback or attach screenshots.
 
-## Development notes
-
-- Tests: The repository contains a placeholder `test/widget_test.dart` — add
-  more unit and widget tests as features are developed.
-- Code generation: Hive type adapters are registered; if you modify model
-  annotations, run `flutter pub run build_runner build` to regenerate adapters.
-
 ## Contributing
 
 Contributions are welcome. Please create issues for bugs or feature requests,
