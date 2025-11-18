@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:dartz/dartz.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:mezgebe_sibhat/features/songs/data/local/server_2_content.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:mezgebe_sibhat/core/error/failure.dart';
@@ -74,7 +75,10 @@ class SongRepoImpl implements SongRepository {
   @override
   Future<List<SongModel>> loadSongs() async {
     try {
+      // await songsBox.deleteAll(songsBox.keys);
+
       final jsonValue = server1Content;
+      // final jsonValue = server2Content;
       List<SongModel> songs = jsonValue
           .map<SongModel>((json) => SongModel.fromJson(json))
           .toList();
@@ -152,82 +156,138 @@ class SongRepoImpl implements SongRepository {
 
   @override
   Stream<Either<Failure, DownloadAudioReport>> downloadAudio(
-    String url,
-    SongModel song,
+    SongModel child,
+    SongModel parent,
   ) async* {
     if (!await networkInfo.isConnected) {
       yield Left(ServerFailure(message: "No internet connection!!!"));
+      return;
     }
 
-    try {
-      final request = http.Request('GET', Uri.parse(url));
-      final response = await client.send(request);
+    String finalUrl = child.url ?? "";
+    bool downloaded = false;
 
-      if (response.statusCode != 200) {
-        yield Left(ServerFailure(message: 'Failed to download file.'));
-      }
+    /// Helper: download a single URL with progress
+    Stream<Either<Failure, DownloadAudioReport>> downloadStream(
+      SongModel parent,
+      SongModel child,
+      String url, {
+      bool emitErrors = true,
+    }) async* {
+      try {
+        final request = http.Request('GET', Uri.parse(url));
+        final response = await client.send(request);
 
-      final dir = await getApplicationDocumentsDirectory();
-      final path = '${dir.path}/Audio/${song.id.replaceAll("/", "_")}';
-      await Directory(path).create(recursive: true);
-      final file = File('$path/${decodeAndTrimUrl(url)}');
+        if (response.statusCode != 200) {
+          if (emitErrors) {
+            yield Left(ServerFailure(message: 'Failed to download file.'));
+          }
+          return; // silently fail if emitErrors == false
+        }
 
-      int downloaded = 0;
-      final total = response.contentLength ?? 0;
+        final dir = await getApplicationDocumentsDirectory();
+        final path = '${dir.path}/Audio/${parent.id.replaceAll("/", "_")}';
+        await Directory(path).create(recursive: true);
+        final file = File('$path/${decodeAndTrimUrl(url)}');
 
-      // Open file for writing chunks
-      final sink = file.openWrite();
+        int downloadedBytes = 0;
+        final total = response.contentLength ?? 0;
+        final sink = file.openWrite();
 
-      // Listen to download progress
-      await for (final chunk in response.stream) {
-        downloaded += chunk.length;
-        sink.add(chunk);
-        // calculate progress
-        double progress = total > 0 ? downloaded / total : 0;
-        print(
-          "Downloading ${song.name}: ${(progress * 100).toStringAsFixed(0)}%",
-        );
-        yield Right(
-          DownloadAudioReport(songModel: song, progress: progress * 100),
-        );
-      }
+        await for (final chunk in response.stream) {
+          downloadedBytes += chunk.length;
+          sink.add(chunk);
 
-      await sink.close();
+          double progress = total > 0 ? downloadedBytes / total : 0;
+          print("Download progress: $progress");
+          yield Right(
+            DownloadAudioReport(songModel: parent, progress: progress * 100),
+          );
+        }
 
-      // // Return updated song model with new path
-      // song.localPath = file.path;
-      print("^^^^^^^^^^^^^^^^^");
-      print("Download completed: ${file.path}");
-      for (var son in song.children) {
-        if (son.url == url) {
-          son.isDownloaded = true;
-          son.audioLocalPath = file.path;
+        await sink.close();
+
+        child.isDownloaded = true;
+        child.audioLocalPath = file.path;
+
+        // persist in songsBox recursively
+        final root = songsBox.get('root');
+        if (root != null) {
+          void updateAudioPathRecursive(List<SongModel> list) {
+            for (var s in list) {
+              if (s.id == parent.id) {
+                s.audioLocalPath = file.path;
+                return;
+              }
+              if (s.children.isNotEmpty) {
+                updateAudioPathRecursive(s.children);
+              }
+            }
+          }
+
+          updateAudioPathRecursive(root.children);
+          await songsBox.put('root', root);
+        }
+
+        yield Right(DownloadAudioReport(progress: 100, songModel: parent));
+      } catch (e) {
+        if (emitErrors) {
+          yield Left(ServerFailure(message: e.toString()));
         }
       }
-      final root = songsBox.get('root');
-      if (root == null) {
-        yield Left(ServerFailure(message: "Root not found"));
-        return;
-      }
+    }
 
-      void updateAudioPathRecursive(List<SongModel> list) {
-        for (var s in list) {
-          if (s.id == song.id) {
-            s.audioLocalPath = file.path;
-            return;
-          }
-          if (s.children.isNotEmpty) {
-            updateAudioPathRecursive(s.children);
+    // Try primary server silently (no error emitted if fails)
+    await for (final event in downloadStream(
+      parent,
+      child,
+      finalUrl,
+      emitErrors: false,
+    )) {
+      yield event; // emit every progress update
+
+      final progressValue = event
+          .getOrElse(() => DownloadAudioReport(songModel: parent, progress: 0))
+          .progress;
+      if (progressValue == 100) {
+        downloaded = true;
+      }
+    }
+
+    // If primary failed, try fallback server
+    if (!downloaded) {
+      print("Primary server failed, trying fallback...");
+      try {
+        final fallbackUrl = await getAudioUrlFromServer(
+          false,
+          parent.id,
+          child.name,
+        );
+
+        if (fallbackUrl.isNotEmpty) {
+          finalUrl = fallbackUrl;
+          await for (final event in downloadStream(parent, child, finalUrl)) {
+            yield event; // emit all events including intermediate progress
+            final progressValue = event
+                .getOrElse(
+                  () => DownloadAudioReport(songModel: parent, progress: 0),
+                )
+                .progress;
+            if (progressValue == 100) {
+              downloaded = true;
+            }
           }
         }
+      } catch (e) {
+        print("Fallback server failed: $e");
       }
+    }
 
-      updateAudioPathRecursive(root.children);
-      await songsBox.put('root', root!);
-      yield Right(DownloadAudioReport(progress: 100, songModel: song));
-    } catch (e) {
-      print("Error downloading file: $e");
-      yield Left(ServerFailure(message: e.toString()));
+    // Both servers failed
+    if (!downloaded) {
+      yield Left(
+        ServerFailure(message: "Failed to download audio from both servers."),
+      );
     }
   }
 
@@ -304,6 +364,63 @@ $feedback
       // Re-throw with user-friendly message
       throw Exception('Failed to send feedback. Please try again.');
     }
+  }
+
+  Future<String> getAudioUrlFromServer(
+    bool isServer1,
+    String parentPath,
+    String audioName,
+  ) async {
+    try {
+      final jsonValue = isServer1 ? server1Content : server2Content;
+
+      List<SongModel> songs = jsonValue
+          .map<SongModel>((json) => SongModel.fromJson(json))
+          .toList();
+      songs = _sortRecursive(songs);
+
+      // Step 1: Find the parent folder
+      final parent = findParentFolder(songs, parentPath);
+
+      if (parent == null) {
+        throw Exception("Parent path not found: $parentPath");
+      }
+
+      // Step 2: Search for the audio inside parent (any depth)
+      final audioModel = findAudioRecursively(parent.children, audioName);
+      print("*********************************");
+      print("Audio model found: ${audioModel?.url}");
+      if (audioModel == null) {
+        throw Exception("Audio not found: $audioName");
+      }
+
+      // Step 3: return URL
+      return audioModel.url ?? "";
+    } catch (e) {
+      return Future.error("Error loading songs: $e");
+    }
+  }
+
+  SongModel? findAudioRecursively(List<SongModel> songs, String audioName) {
+    for (final song in songs) {
+      if (song.name == audioName && song.isAudio == true) {
+        return song;
+      }
+
+      final deeper = findAudioRecursively(song.children, audioName);
+      if (deeper != null) return deeper;
+    }
+    return null;
+  }
+
+  SongModel? findParentFolder(List<SongModel> songs, String parentPath) {
+    for (final song in songs) {
+      if (song.id == parentPath) return song;
+
+      final deeper = findParentFolder(song.children, parentPath);
+      if (deeper != null) return deeper;
+    }
+    return null;
   }
 }
 

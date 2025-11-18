@@ -11,8 +11,8 @@ abstract class SongRepository {
   Future<List<SongModel>> loadSongs();
   Future<List<SongModel>> saveImageLocally(SongModel song, String imagePath);
   Stream<Either<Failure, DownloadAudioReport>> downloadAudio(
-    String url,
-    SongModel song,
+    SongModel child,
+    SongModel parent,
   );
   Future<bool> isConnected();
   Future<void> submitFeedback({

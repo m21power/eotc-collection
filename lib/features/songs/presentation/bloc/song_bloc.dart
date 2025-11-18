@@ -141,7 +141,7 @@ class SongBloc extends Bloc<SongEvent, SongState> {
     on<DownloadAudioEvent>((event, emit) async {
       // listen to the stream from the use case
       await emit.forEach<Either<Failure, DownloadAudioReport>>(
-        downloadAudioUseCase(event.url, event.song),
+        downloadAudioUseCase(event.child, event.parent),
         onData: (result) {
           return result.fold(
             (failure) => AudioDownloadFailed(
@@ -152,6 +152,7 @@ class SongBloc extends Bloc<SongEvent, SongState> {
             ),
             (audioReport) {
               if (audioReport.progress < 100) {
+                print("Downloading... ${audioReport.progress}%");
                 // still downloading
                 return AudioDownloadingFetchingState(
                   isLightTheme: state.isLightTheme,

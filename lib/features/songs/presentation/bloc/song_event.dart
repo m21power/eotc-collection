@@ -19,9 +19,9 @@ final class SaveImageLocallyEvent extends SongEvent {
 }
 
 final class DownloadAudioEvent extends SongEvent {
-  final SongModel song;
-  final String url;
-  DownloadAudioEvent(this.song, this.url);
+  final SongModel parent;
+  final SongModel child;
+  DownloadAudioEvent({required this.parent, required this.child});
 }
 
 final class CheckConnection extends SongEvent {}

@@ -1,4 +1,4 @@
-package com.example.mezgebe_sibhat
+package app.mesay.mezgebe_sibhat
 
 import io.flutter.embedding.android.FlutterActivity
 

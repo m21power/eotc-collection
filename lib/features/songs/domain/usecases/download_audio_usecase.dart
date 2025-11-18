@@ -8,9 +8,9 @@ class DownloadAudioUseCase {
   final SongRepository songRepository;
   DownloadAudioUseCase(this.songRepository);
   Stream<Either<Failure, DownloadAudioReport>> call(
-    String url,
-    SongModel song,
+    SongModel child,
+    SongModel parent,
   ) {
-    return songRepository.downloadAudio(url, song);
+    return songRepository.downloadAudio(child, parent);
   }
 }

@@ -41,7 +41,6 @@ class _HomePageState extends State<HomePage> {
         appBar: AppBar(
           title: const Text("መዝገበ ስብሐት"),
           centerTitle: true,
-          // backgroundColor: isDarkMode ? Colors.black : Colors.white,
           actions: [
             PopupMenuButton<String>(
               color: isDarkMode ? Colors.grey[900] : Colors.white,
@@ -99,6 +98,7 @@ class _HomePageState extends State<HomePage> {
                   ),
                   itemBuilder: (context, index) {
                     final song = songState.songs[index];
+
                     return buildSongItem(song);
                   },
                 ),
@@ -111,23 +111,29 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget buildSongItem(SongModel song, {double indent = 0}) {
-    final expanded = isExpanded(song); // unique id
+    final expanded = isExpanded(song);
 
     if (song.isAudio) {
       return InkWell(
         onTap: () {},
         child: Container(
           margin: const EdgeInsets.symmetric(vertical: 4),
-          padding: EdgeInsets.symmetric(vertical: 8, horizontal: 16 + indent),
+          padding: EdgeInsets.symmetric(vertical: 10, horizontal: 16 + indent),
           decoration: BoxDecoration(
-            color: Colors.blue.shade50.withOpacity(0.2),
-            borderRadius: BorderRadius.circular(12),
+            color: Colors.blue.withOpacity(0.08),
+            borderRadius: BorderRadius.circular(14),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 3,
+                offset: const Offset(1, 2),
+              ),
+            ],
           ),
           child: Row(
-            mainAxisSize: MainAxisSize.min,
             children: [
               const Icon(Icons.music_note, color: Colors.blueAccent, size: 22),
-              const SizedBox(width: 8),
+              const SizedBox(width: 10),
               Expanded(
                 child: Text(
                   song.name,
@@ -145,7 +151,7 @@ class _HomePageState extends State<HomePage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         InkWell(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(14),
           onTap: () {
             final oneOfTheChildrenIsAudio = song.children.any(
               (child) => child.isAudio,
@@ -160,46 +166,41 @@ class _HomePageState extends State<HomePage> {
               );
             }
           },
-          child: Container(
-            margin: const EdgeInsets.symmetric(vertical: 4),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeInOut,
+            margin: const EdgeInsets.symmetric(vertical: 6),
             padding: EdgeInsets.symmetric(
-              vertical: 10,
+              vertical: 12,
               horizontal: 16 + indent,
             ),
             decoration: BoxDecoration(
               color: expanded
-                  ? Colors.orange.shade100.withOpacity(0.3)
-                  : Colors.orange.shade50.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(12),
+                  ? Colors.amber.withOpacity(0.25)
+                  : Colors.amber.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(14),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withOpacity(0.05),
-                  blurRadius: 3,
-                  offset: const Offset(1, 1),
+                  blurRadius: 4,
+                  offset: const Offset(1, 2),
                 ),
               ],
             ),
             child: Row(
-              mainAxisSize: MainAxisSize.min,
               children: [
-                expanded
-                    ? Image.asset(
-                        "assets/folder_icon.png",
-                        width: 28,
-                        height: 28,
-                      )
-                    : const Icon(
-                        Icons.folder,
-                        color: Colors.amberAccent,
-                        size: 28,
-                      ),
-                const SizedBox(width: 8),
+                Icon(
+                  expanded ? Icons.folder_open : Icons.folder,
+                  color: Colors.orange.shade600,
+                  size: 28,
+                ),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     song.name,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w600,
                       fontSize: 16,
                     ),
                   ),
@@ -210,23 +211,23 @@ class _HomePageState extends State<HomePage> {
                     expanded
                         ? Icons.keyboard_arrow_down
                         : Icons.keyboard_arrow_right,
-                    color: Theme.of(context).iconTheme.color,
                   ),
               ],
             ),
           ),
         ),
+
         if (expanded && song.listHere)
           Padding(
-            padding: const EdgeInsets.only(left: 20, top: 6),
+            padding: EdgeInsets.only(left: indent + 30, top: 4),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: song.children
-                  .map((child) => buildSongItem(child, indent: indent + 10))
+                  .map((child) => buildSongItem(child, indent: 0))
                   .toList(),
             ),
           ),
-        const SizedBox(height: 6),
+
+        const SizedBox(height: 4),
       ],
     );
   }

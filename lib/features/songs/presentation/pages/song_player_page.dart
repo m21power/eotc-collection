@@ -190,8 +190,7 @@ class _SongPlayerPageState extends State<SongPlayerPage> {
         child: BlocConsumer<SongBloc, SongState>(
           listener: (context, songState) {
             if (songState is AudioDownloadingFetchingState) {
-              print("testing.>>>>>>>>>>>>>>>>");
-              print(songState.progress);
+              print("Progress:${songState.progress}");
               setState(() {
                 isLoading = false;
                 downloadProgress = songState.progress;
@@ -431,8 +430,8 @@ class _SongPlayerPageState extends State<SongPlayerPage> {
                               setState(() => isLoading = true);
                               context.read<SongBloc>().add(
                                 DownloadAudioEvent(
-                                  songModel!,
-                                  currentChild.url!,
+                                  parent: songModel!,
+                                  child: currentChild,
                                 ),
                               );
                             }
@@ -506,67 +505,65 @@ class _SongPlayerPageState extends State<SongPlayerPage> {
                 // Scrollable Song List at Bottom
                 Expanded(
                   child: Container(
-                    padding: const EdgeInsets.only(left: 16, right: 16, top: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
                     decoration: BoxDecoration(
-                      color: theme.cardColor.withOpacity(0.2),
+                      color: theme.cardColor.withOpacity(0.05),
                       borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(30),
+                        top: Radius.circular(32),
                       ),
                     ),
                     child: ListView.builder(
                       itemCount: songModel!.children.length,
                       itemBuilder: (context, index) {
                         final song = songModel!.children[index];
+                        final isSelected = index == currentIndex;
+
                         return Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: currentIndex == index
-                                  ? theme.primaryColor.withOpacity(0.10)
-                                  : theme.cardColor.withOpacity(0.02),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Material(
-                              color: Colors.transparent,
-                              child: InkWell(
-                                borderRadius: BorderRadius.circular(12),
-                                onTap: () => playSongAtIndex(index),
-                                child: ListTile(
-                                  contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 8,
-                                  ),
-                                  leading: ClipRRect(
-                                    borderRadius: BorderRadius.circular(8),
-                                    child: Icon(Icons.music_note, size: 30),
-                                  ),
-                                  title: Text(
-                                    song.name,
-                                    style: textTheme.bodyLarge,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  // subtitle: FutureBuilder<Duration>(
-                                  //   future: song.isDownloaded
-                                  //       ? _getAudioDurationCached(
-                                  //           song.audioLocalPath!,
-                                  //         )
-                                  //       : Future.value(Duration.zero),
-                                  //   builder: (context, snapshot) {
-                                  //     if (!song.isDownloaded ||
-                                  //         !snapshot.hasData ||
-                                  //         snapshot.data!.inMilliseconds == 0) {
-                                  //       return Text(
-                                  //         "--:--",
-                                  //         style: textTheme.titleMedium,
-                                  //       );
-                                  //     }
-                                  //     return Text(
-                                  //       formatDuration(snapshot.data),
-                                  //       style: textTheme.titleMedium,
-                                  //     );
-                                  //   },
-                                  // ),
+                          padding: const EdgeInsets.symmetric(vertical: 6),
+                          child: Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(16),
+                              onTap: () => playSongAtIndex(index),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 8,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: isSelected
+                                      ? theme.primaryColor.withOpacity(0.15)
+                                      : theme.cardColor.withOpacity(0.02),
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.music_note,
+                                      size: 28,
+                                      color: theme.primaryColor,
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Text(
+                                        song.name,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: textTheme.bodyLarge?.copyWith(
+                                          fontWeight: isSelected
+                                              ? FontWeight.bold
+                                              : FontWeight.normal,
+                                        ),
+                                      ),
+                                    ),
+                                    if (isSelected)
+                                      Icon(
+                                        Icons.equalizer,
+                                        color: theme.primaryColor,
+                                      ),
+                                  ],
                                 ),
                               ),
                             ),

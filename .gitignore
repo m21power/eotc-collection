@@ -19,7 +19,9 @@ migrate_working_dir/
 .idea/
 *.env
 lib/features/songs/data/local/server_1_content.dart
+lib/features/songs/data/local/server_2_content.dart
 load_json.dart
+android/key.properties
 # The .vscode folder contains launch configuration and tasks you configure in
 # VS Code which you may wish to be included in version control, so this line
 # is commented out by default.

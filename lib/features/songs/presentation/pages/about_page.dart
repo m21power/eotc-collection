@@ -103,230 +103,244 @@ class _AboutPageState extends State<AboutPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // About Section
-                  Text('መዝገበ ስብሐት', style: theme.textTheme.displayMedium),
-                  const SizedBox(height: 12),
-
-                  Center(
-                    child: Text(
-                      'Treasury of Ethiopian Orthodox Tewahedo Church Teachings',
-                      style: theme.textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        height: 1.4,
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 28,
+                      horizontal: 22,
+                    ),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(20),
+                      gradient: LinearGradient(
+                        colors: [
+                          Theme.of(context).primaryColor.withOpacity(0.08),
+                          Theme.of(context).primaryColor.withOpacity(0.03),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
                       ),
-                      textAlign: TextAlign.center,
+                      boxShadow: [
+                        BoxShadow(
+                          blurRadius: 8,
+                          offset: const Offset(0, 3),
+                          color: Colors.black.withOpacity(0.05),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      children: [
+                        Text(
+                          'መዝገበ ስብሐት',
+                          style: theme.textTheme.displayMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+
+                        Text(
+                          'Treasury of Ethiopian Orthodox Tewahedo Church Teachings',
+                          style: theme.textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 25),
+
+                        Text(
+                          "This application is dedicated to every soul who desires to learn the sacred teachings "
+                          "of the Ethiopian Orthodox Tewahedo Church, yet has not had the opportunity to do so.\n\n"
+                          "All glory belongs to God Almighty, who inspired and guided this work.\n\n"
+                          "We extend gratitude to all fathers, monks, scholars, deacons, and faithful servants "
+                          "who preserved the sacred hymns and teachings through generations.\n\n"
+                          "Version 1.0.0\n© 2025 Mezgebe Sibhat",
+                          textAlign: TextAlign.justify,
+                          style: theme.textTheme.bodyLarge?.copyWith(
+                            height: 1.7,
+                            fontSize: 15,
+                            color: theme.textTheme.bodyLarge?.color
+                                ?.withOpacity(0.9),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 28),
 
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12.0),
-                    child: RichText(
-                      textAlign: TextAlign.justify,
-                      text: TextSpan(
-                        style: theme.textTheme.bodyLarge?.copyWith(height: 1.7),
+                  const SizedBox(height: 40),
+
+                  Text(
+                    "Report a Bug or Contact Us",
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(18),
+                      color: theme.cardColor,
+                      boxShadow: [
+                        BoxShadow(
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                          color: Colors.black.withOpacity(0.08),
+                        ),
+                      ],
+                    ),
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
                         children: [
-                          const TextSpan(
-                            text:
-                                'This application is dedicated to every soul who desires to learn the sacred teachings of the '
-                                'Ethiopian Orthodox Tewahedo Church, yet has not had the opportunity to do so in traditional settings. '
-                                'Whether due to distance, time, or circumstance, this digital treasury brings centuries of spiritual wisdom '
-                                ' preserved through chant, scripture, and oral tradition directly to your fingertips.\n\n',
+                          TextFormField(
+                            controller: _feedbackController,
+                            maxLines: 6,
+                            decoration: InputDecoration(
+                              labelText: "Describe the issue",
+                              alignLabelWithHint: true,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              filled: true,
+                              fillColor: theme.brightness == Brightness.dark
+                                  ? Colors.white.withOpacity(0.05)
+                                  : Colors.black.withOpacity(0.03),
+                            ),
+                            validator: (v) => v!.trim().isEmpty
+                                ? 'Please describe the issue'
+                                : null,
                           ),
-                          const TextSpan(
-                            text:
-                                'First and foremost, all glory and thanksgiving belong to God Almighty, '
-                                'who inspired, guided, and empowered the creation of this app. '
-                                'It is by His grace alone that this work has come to fruition.\n\n',
+                          const SizedBox(height: 20),
+
+                          TextFormField(
+                            controller: _telegramController,
+                            decoration: InputDecoration(
+                              labelText: "Telegram Username (optional)",
+                              prefixText: '@ ',
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              filled: true,
+                              fillColor: theme.brightness == Brightness.dark
+                                  ? Colors.white.withOpacity(0.05)
+                                  : Colors.black.withOpacity(0.03),
+                            ),
                           ),
-                          const TextSpan(
-                            text:
-                                'We extend our deepest gratitude to our fathers  the monks, scholars, deacons, and faithful servants '
-                                'across generations who recorded, preserved, and transmitted the sacred hymns, liturgical texts, '
-                                'and theological teachings of our Church. '
-                                'Though many of their names remain unknown to us today, their labor of love echoes through time '
-                                'and now reaches a global audience in digital form.\n\n',
+                          const SizedBox(height: 20),
+
+                          Row(
+                            children: [
+                              Expanded(
+                                child: OutlinedButton.icon(
+                                  onPressed: _pickImage,
+                                  icon: const Icon(Icons.add_photo_alternate),
+                                  label: Text(
+                                    _selectedImage == null
+                                        ? "Attach Screenshot"
+                                        : "Change Screenshot",
+                                  ),
+                                  style: OutlinedButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 15,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              if (_selectedImage != null) ...[
+                                const SizedBox(width: 8),
+                                IconButton(
+                                  onPressed: () =>
+                                      setState(() => _selectedImage = null),
+                                  icon: const Icon(
+                                    Icons.close,
+                                    color: Colors.red,
+                                  ),
+                                ),
+                              ],
+                            ],
                           ),
 
-                          TextSpan(
-                            text:
-                                'Version 1.0.0\n'
-                                '© 2025 Mezgebe Sibhat',
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: theme.textTheme.bodyMedium?.color
-                                  ?.withOpacity(0.7),
-                              fontSize: 13,
+                          if (_selectedImage != null)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 16),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(14),
+                                child: Image.file(
+                                  _selectedImage!,
+                                  height: 200,
+                                  width: double.infinity,
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                            ),
+
+                          const SizedBox(height: 28),
+
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton(
+                              onPressed: () {
+                                if (songState.connectionEnabled == false) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Row(
+                                        children: const [
+                                          Icon(
+                                            Icons.wifi_off,
+                                            color: Colors.white,
+                                          ),
+                                          SizedBox(width: 10),
+                                          Expanded(
+                                            child: Text(
+                                              "Please enable your internet connection",
+                                              style: TextStyle(
+                                                color: Colors.white,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      backgroundColor: Colors.redAccent,
+                                      behavior: SnackBarBehavior.floating,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      margin: const EdgeInsets.all(16),
+                                      duration: const Duration(seconds: 3),
+                                    ),
+                                  );
+                                  return;
+                                }
+
+                                if (_formKey.currentState!.validate()) {
+                                  BlocProvider.of<SongBloc>(context).add(
+                                    SubmitFeedbackEvent(
+                                      feedback: _feedbackController.text.trim(),
+                                      fullname: _telegramController.text.trim(),
+                                      imageFile: _selectedImage,
+                                    ),
+                                  );
+                                }
+                              },
+                              style: ElevatedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 16,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              child: songState is! SubmitFeedbackLoadingState
+                                  ? const Text(
+                                      "Send Report",
+                                      style: TextStyle(fontSize: 16),
+                                    )
+                                  : const CircularProgressIndicator(),
                             ),
                           ),
                         ],
                       ),
-                    ),
-                  ),
-                  const SizedBox(height: 32),
-
-                  // ──────────────────────────────────────────────────────
-                  // Contact / Bug-Report Section
-                  // ──────────────────────────────────────────────────────
-                  Text(
-                    'Contact Us – Report a Bug or Issue',
-                    style: theme.textTheme.titleLarge,
-                  ),
-                  const SizedBox(height: 16),
-
-                  Form(
-                    key: _formKey,
-                    child: Column(
-                      children: [
-                        // ── Message (required) ─────────────────────────────────────
-                        TextFormField(
-                          controller: _feedbackController,
-                          maxLines: 6,
-                          decoration: InputDecoration(
-                            hintText:
-                                'Describe the bug, missing feature, or any issue…',
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            filled: true,
-                            fillColor: isDark
-                                ? Colors.white.withOpacity(0.05)
-                                : Colors.black.withOpacity(0.03),
-                          ),
-                          validator: (v) => v!.trim().isEmpty
-                              ? 'Please describe the issue'
-                              : null,
-                        ),
-                        const SizedBox(height: 16),
-
-                        // ── Telegram Username (optional) ────────────────────────
-                        TextFormField(
-                          controller: _telegramController,
-                          decoration: InputDecoration(
-                            hintText:
-                                'Telegram username (optional, for follow-up)',
-                            prefixText: '@',
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            filled: true,
-                            fillColor: isDark
-                                ? Colors.white.withOpacity(0.05)
-                                : Colors.black.withOpacity(0.03),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-
-                        // ── Image Picker ────────────────────────────────────────
-                        Row(
-                          children: [
-                            Expanded(
-                              child: OutlinedButton.icon(
-                                onPressed: _pickImage,
-                                icon: const Icon(Icons.attach_file),
-                                label: Text(
-                                  _selectedImage == null
-                                      ? 'Attach Screenshot'
-                                      : 'Change Screenshot',
-                                ),
-                              ),
-                            ),
-                            if (_selectedImage != null) ...[
-                              const SizedBox(width: 8),
-                              IconButton(
-                                icon: const Icon(
-                                  Icons.clear,
-                                  color: Colors.red,
-                                ),
-                                onPressed: () =>
-                                    setState(() => _selectedImage = null),
-                              ),
-                            ],
-                          ],
-                        ),
-
-                        // ── Image Preview (optional) ─────────────────────────────
-                        if (_selectedImage != null)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 12),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(12),
-                              child: Image.file(
-                                _selectedImage!,
-                                height: 200,
-                                width: double.infinity,
-                                fit: BoxFit.cover,
-                              ),
-                            ),
-                          ),
-
-                        const SizedBox(height: 24),
-
-                        // ── Submit Button ────────────────────────────────────────
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            onPressed: () {
-                              if (songState.connectionEnabled == false) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Row(
-                                      children: const [
-                                        Icon(
-                                          Icons.wifi_off,
-                                          color: Colors.white,
-                                        ),
-                                        SizedBox(width: 10),
-                                        Expanded(
-                                          child: Text(
-                                            "Please enable your internet connection",
-                                            style: TextStyle(
-                                              color: Colors.white,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    backgroundColor: Colors.redAccent,
-                                    behavior: SnackBarBehavior.floating,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    margin: const EdgeInsets.all(16),
-                                    duration: const Duration(seconds: 3),
-                                  ),
-                                );
-                                return;
-                              }
-                              if (_formKey.currentState!.validate()) {
-                                BlocProvider.of<SongBloc>(context).add(
-                                  SubmitFeedbackEvent(
-                                    feedback: _feedbackController.text.trim(),
-                                    fullname: _telegramController.text.trim(),
-                                    imageFile: _selectedImage,
-                                  ),
-                                );
-                              }
-                            },
-                            style: ElevatedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                            child: songState is! SubmitFeedbackLoadingState
-                                ? Text(
-                                    'Send Report',
-                                    style: TextStyle(fontSize: 16),
-                                  )
-                                : CircularProgressIndicator(
-                                    valueColor: AlwaysStoppedAnimation<Color>(
-                                      Theme.of(context).splashColor,
-                                    ),
-                                  ),
-                          ),
-                        ),
-                      ],
                     ),
                   ),
                 ],
